@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SquashScore PRO - Placar ao Vivo</title>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: #1e1e1e;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 { color: #8ab4f8; margin-bottom: 10px; }
+        .pin-box { font-size: 1.5rem; margin-bottom: 30px; color: #aaa; }
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 20px 0;
+            background: #2b2b2b;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        .status { font-style: italic; color: #4bb543; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>SquashScore PRO</h1>
+        <div id="room-info" class="pin-box">Carregando sala...</div>
+
+        <div class="score-board">
+            <div>
+                <div style="font-size: 1rem; color: #888;">J1</div>
+                <span id="score1">0</span>
+            </div>
+            <div style="color: #555;">-</div>
+            <div>
+                <div style="font-size: 1rem; color: #888;">J2</div>
+                <span id="score2">0</span>
+            </div>
+        </div>
+
+        <div id="status" class="status">Aguardando início da partida...</div>
+    </div>
+
+    <script>
+        // Substitua pelas suas credenciais reais do Supabase
+        const SUPABASE_URL = 'SUA_SUPABASE_URL_AQUI';
+        const SUPABASE_ANON_KEY = 'SUA_SUPABASE_ANON_KEY_AQUI';
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Pega o número da sala da URL (ex: ?sala=7944)
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomPin = urlParams.get('sala');
+
+        if (!roomPin) {
+            document.getElementById('room-info').innerText = "Erro: Nenhuma sala informada!";
+            document.getElementById('status').innerText = "Escaneie o QR Code correto no celular do Host.";
+        } else {
+            document.getElementById('room-info').innerText = `Sala Conectada: #${roomPin}`;
+            loadRoomData(roomPin);
+            subscribeRealtime(roomPin);
+        }
+
+        async function loadRoomData(pin) {
+            const { data, error } = await supabaseClient
+                .from('live_sessions')
+                .select('*')
+                .eq('pin', pin)
+                .single();
+
+            if (error) {
+                console.error("Erro ao buscar sala:", error);
+                document.getElementById('status').innerText = "Sala não encontrada no banco.";
+                return;
+            }
+
+            if (data) {
+                updateUI(data);
+            }
+        }
+
+        function subscribeRealtime(pin) {
+            supabaseClient
+                .channel('public:live_sessions')
+                .on('postgres_changes', { 
+                    event: 'UPDATE', 
+                    schema: 'public', 
+                    table: 'live_sessions',
+                    filter: `pin=eq.${pin}`
+                }, (payload) => {
+                    console.log('Mudança em tempo real recebida:', payload);
+                    updateUI(payload.new);
+                })
+                .subscribe();
+        }
+
+        function updateUI(data) {
+            document.getElementById('score1').innerText = data.score1 || 0;
+            document.getElementById('score2').innerText = data.score2 || 0;
+            document.getElementById('status').innerText = `Status: ${data.status}`;
+        }
+    </script>
+</body>
+</html>
