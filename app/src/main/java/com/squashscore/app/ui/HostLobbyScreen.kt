@@ -297,7 +297,7 @@ fun createLiveSessionInSupabase(
                 Log.d("HostLobbyScreen", "Successfully created live session in Supabase for PIN: $pin")
                 onResult(true, "Session created successfully")
             } else {
-                val errorMsg = "Failed to create live session. Code: ${response.code}, Error: ${response.errorBody()?.string()}"
+                val errorMsg = "Failed to create live session. Code: ${response.code()}, Error: ${response.errorBody()?.string()}"
                 Log.e("HostLobbyScreen", errorMsg)
                 onResult(false, errorMsg)
             }
