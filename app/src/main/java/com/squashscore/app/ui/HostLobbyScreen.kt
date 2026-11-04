@@ -49,7 +49,7 @@ import kotlin.random.Random
 private const val BASE_URL = "https://fernandojsamorim-source.github.io/SquashScore_PRO/?sala="
 
 /**
- * Composable HostLobbyScreen para a criação e exibição do QR Code da sala de partida do SquashScore PRO.
+ * Composable HostLobbyScreen para a criação e exibição do QR Code da sala de partida do SquashScore_PRO.
  */
 @Composable
 fun HostLobbyScreen(
@@ -81,7 +81,7 @@ fun HostLobbyScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "SquashScore PRO",
+                text = "SquashScore_PRO",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
