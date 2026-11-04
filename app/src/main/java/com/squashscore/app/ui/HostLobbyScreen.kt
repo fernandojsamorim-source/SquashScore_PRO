@@ -54,7 +54,7 @@ private const val BASE_URL = "https://fernandojsamorim-source.github.io/SquashSc
 @Composable
 fun HostLobbyScreen(
     modifier: Modifier = Modifier,
-    onRoomCreated: (pin: String, url: String) -> Unit = { _, _ -> }
+    onRoomCreated: (pin: String, url: String) -> Unit = { _, _ -> },
 ) {
     var pin by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -70,7 +70,7 @@ fun HostLobbyScreen(
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(
             modifier = Modifier
@@ -187,9 +187,9 @@ fun HostLobbyScreen(
                                 .padding(12.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (qrBitmap != null) {
+                            qrBitmap?.let { bitmap ->
                                 Image(
-                                    bitmap = qrBitmap,
+                                    bitmap = bitmap,
                                     contentDescription = "QR Code para entrar na sala $pin",
                                     modifier = Modifier.fillMaxSize()
                                 )
@@ -240,7 +240,7 @@ fun HostLobbyScreen(
  */
 fun generateQrCodeBitmap(content: String, size: Int = 512): ImageBitmap? {
     return try {
-        val hints = mapOf(
+        val hints: Map<EncodeHintType, Any> = mapOf(
             EncodeHintType.MARGIN to 1,
             EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H
         )
