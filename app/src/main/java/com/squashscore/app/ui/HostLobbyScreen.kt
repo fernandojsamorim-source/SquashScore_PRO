@@ -2,6 +2,7 @@ package com.squashscore.app.ui
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,16 +45,24 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import com.squashscore.app.data.api.SupabaseClient
+import com.squashscore.app.data.model.LiveSessionRecord
+import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 private const val BASE_URL = "https://fernandojsamorim-source.github.io/SquashScore_PRO/?sala="
 
 /**
- * Composable HostLobbyScreen para a criação e exibição do QR Code da sala de partida do SquashScore_PRO.
+ * HostLobbyScreen Composable for generating room PINs and displaying the QR code for SquashScore_PRO.
  */
 @Composable
 fun HostLobbyScreen(
     modifier: Modifier = Modifier,
+    supabaseUrl: String = "",
+    supabaseKey: String = "",
     onRoomCreated: (pin: String, url: String) -> Unit = { _, _ -> },
 ) {
     var pin by rememberSaveable { mutableStateOf<String?>(null) }
@@ -90,82 +99,93 @@ fun HostLobbyScreen(
             Text(
                 text = "Host da Partida",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             if (pin == null) {
-                // Estado inicial antes de gerar a sala
+                // Initial state before room creation
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             text = "Clique abaixo para criar uma nova sala de partida. Um PIN numérico aleatório de 4 dígitos e o QR Code correspondente serão gerados.",
                             textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
 
                         Button(
                             onClick = {
-                                val newPin = String.format(java.util.Locale.US, "%04d", Random.nextInt(10000))
+                                val newPin = String.format(Locale.US, "%04d", Random.nextInt(10000))
                                 pin = newPin
                                 onRoomCreated(newPin, "$BASE_URL$newPin")
+
+                                // Trigger POST request to Supabase in Dispatchers.IO
+                                if (supabaseUrl.isNotEmpty() && supabaseKey.isNotEmpty()) {
+                                    createLiveSessionInSupabase(
+                                        supabaseUrl = supabaseUrl,
+                                        supabaseKey = supabaseKey,
+                                        pin = newPin,
+                                    )
+                                } else {
+                                    Log.d("HostLobbyScreen", "Supabase URL or Key is empty. Skipping network call.")
+                                }
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
                                 text = "Criar Sala",
                                 fontSize = 18.sp,
-                                modifier = Modifier.padding(vertical = 4.dp)
+                                modifier = Modifier.padding(vertical = 4.dp),
                             )
                         }
                     }
                 }
             } else {
-                // Estado após a sala ser criada (Exibindo PIN e QR Code)
+                // State after room creation (displaying PIN and QR Code)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             text = "SALA CONECTADA",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.secondary,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // PIN numérico grande de 4 dígitos (ex: 7788)
+                        // Large 4-digit PIN (e.g., 7788)
                         Text(
                             text = pin ?: "",
                             style = MaterialTheme.typography.displayLarge.copy(
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 8.sp
+                                letterSpacing = 8.sp,
                             ),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -173,25 +193,25 @@ fun HostLobbyScreen(
                         Text(
                             text = "PIN da Sala",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // QR Code container (fundo branco para contraste perfeito de leitura)
+                        // QR Code container (white background for optimal scanner contrast)
                         Box(
                             modifier = Modifier
                                 .size(240.dp)
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(androidx.compose.ui.graphics.Color.White)
                                 .padding(12.dp),
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) {
                             qrBitmap?.let { bitmap ->
                                 Image(
                                     bitmap = bitmap,
                                     contentDescription = "QR Code para entrar na sala $pin",
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxSize(),
                                 )
                             }
                         }
@@ -202,7 +222,7 @@ fun HostLobbyScreen(
                             text = "Outros dispositivos podem escanear este QR Code para conectar:",
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -210,21 +230,32 @@ fun HostLobbyScreen(
                         Text(
                             text = fullUrl,
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = FontFamily.Monospace,
                             ),
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
 
                         OutlinedButton(
                             onClick = {
-                                val newPin = String.format(java.util.Locale.US, "%04d", Random.nextInt(10000))
+                                val newPin = String.format(Locale.US, "%04d", Random.nextInt(10000))
                                 pin = newPin
                                 onRoomCreated(newPin, "$BASE_URL$newPin")
+
+                                // Trigger POST request to Supabase in Dispatchers.IO
+                                if (supabaseUrl.isNotEmpty() && supabaseKey.isNotEmpty()) {
+                                    createLiveSessionInSupabase(
+                                        supabaseUrl = supabaseUrl,
+                                        supabaseKey = supabaseKey,
+                                        pin = newPin,
+                                    )
+                                } else {
+                                    Log.d("HostLobbyScreen", "Supabase URL or Key is empty. Skipping network call.")
+                                }
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text("Gerar Nova Sala")
                         }
@@ -236,13 +267,56 @@ fun HostLobbyScreen(
 }
 
 /**
- * Função utilitária pura que gera uma ImageBitmap a partir da string recebida via ZXing Core.
+ * Inserts a new live session into Supabase using CoroutineScope and Retrofit.
+ *
+ * @param supabaseUrl Base URL of the Supabase project.
+ * @param supabaseKey Anonymous/Public API key for Supabase.
+ * @param pin Generated 4-digit room PIN.
+ * @param onResult Callback executed with success status and optional message.
+ */
+fun createLiveSessionInSupabase(
+    supabaseUrl: String,
+    supabaseKey: String,
+    pin: String,
+    onResult: (success: Boolean, message: String) -> Unit = { _, _ -> },
+) {
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            Log.d("HostLobbyScreen", "Attempting to create live session in Supabase for PIN: $pin")
+            val api = SupabaseClient.createApi(supabaseUrl)
+            val record = LiveSessionRecord(pin = pin, status = "waiting")
+
+            val response = api.createLiveSession(
+                apiKey = supabaseKey,
+                authorization = "Bearer $supabaseKey",
+                prefer = "return=representation",
+                body = record,
+            )
+
+            if (response.isSuccessful) {
+                Log.d("HostLobbyScreen", "Successfully created live session in Supabase for PIN: $pin")
+                onResult(true, "Session created successfully")
+            } else {
+                val errorMsg = "Failed to create live session. Code: ${response.code}, Error: ${response.errorBody()?.string()}"
+                Log.e("HostLobbyScreen", errorMsg)
+                onResult(false, errorMsg)
+            }
+        } catch (e: Exception) {
+            val errorMsg = "Exception occurred while creating live session: ${e.localizedMessage}"
+            Log.e("HostLobbyScreen", errorMsg, e)
+            onResult(false, errorMsg)
+        }
+    }
+}
+
+/**
+ * Pure utility function generating an ImageBitmap from the input string via ZXing Core.
  */
 fun generateQrCodeBitmap(content: String, size: Int = 512): ImageBitmap? {
     return try {
         val hints: Map<EncodeHintType, Any> = mapOf(
             EncodeHintType.MARGIN to 1,
-            EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H
+            EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H,
         )
         val bitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
