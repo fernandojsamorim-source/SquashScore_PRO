@@ -5,9 +5,9 @@ import android.graphics.Color
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,14 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,8 +67,11 @@ private const val BASE_URL = "https://fernandojsamorim-source.github.io/SquashSc
 @Composable
 fun HostLobbyScreen(
     modifier: Modifier = Modifier,
+    player1Name: String = "Jogador 1",
+    player2Name: String = "Jogador 2",
     supabaseUrl: String = "https://tosgwsmypmxkzhhaofqi.supabase.co",
     supabaseKey: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvc2d3c215cG14a3poaGFvZnFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MjIyODcsImV4cCI6MjEwOTM5ODI4N30.WTRuZyHAZpWo_XZjntO746EyIrcBvlMYPf3re81rFbs",
+    onBackClick: () -> Unit = {},
     onRoomCreated: (pin: String, url: String) -> Unit = { _, _ -> },
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -85,14 +93,23 @@ fun HostLobbyScreen(
         onRoomCreated(newPin, "$BASE_URL$newPin")
 
         if (supabaseUrl.isNotEmpty() && supabaseKey.isNotEmpty()) {
+            val playersList = listOf(player1Name, player2Name)
             createLiveSessionInSupabase(
                 supabaseUrl = supabaseUrl,
                 supabaseKey = supabaseKey,
                 pin = newPin,
+                allPlayers = playersList,
+                courtPlayers = playersList,
                 coroutineScope = coroutineScope,
             )
         } else {
             Log.d("HostLobbyScreen", "Supabase URL or Key is empty. Skipping network call.")
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (pin == null) {
+            createRoom()
         }
     }
 
@@ -106,13 +123,34 @@ fun HostLobbyScreen(
                 .padding(24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
+            // Top Bar with Back Navigation
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Voltar",
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Criar Sala",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
-                text = "SquashScore_PRO",
+                text = "$player1Name vs $player2Name",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
             )
 
             Text(
@@ -138,7 +176,7 @@ fun HostLobbyScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            text = "Clique abaixo para criar uma nova sala de partida. Um PIN numérico aleatório de 4 dígitos e o QR Code correspondente serão gerados.",
+                            text = "Gerando PIN numérico aleatório de 4 dígitos e QR Code...",
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyLarge,
                         )
@@ -150,7 +188,7 @@ fun HostLobbyScreen(
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
-                                text = "Criar Sala",
+                                text = "Gerar PIN",
                                 fontSize = 18.sp,
                                 modifier = Modifier.padding(vertical = 4.dp),
                             )
@@ -268,14 +306,23 @@ fun createLiveSessionInSupabase(
     supabaseUrl: String,
     supabaseKey: String,
     pin: String,
+    allPlayers: List<String> = emptyList(),
+    courtPlayers: List<String> = emptyList(),
     coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     onResult: (success: Boolean, message: String) -> Unit = { _, _ -> },
 ) {
     coroutineScope.launch(Dispatchers.IO) {
         try {
-            Log.d("HostLobbyScreen", "Attempting to create live session in Supabase for PIN: $pin")
+            Log.d("HostLobbyScreen", "Attempting to create live session in Supabase for PIN: $pin with players: $allPlayers")
             val api = SupabaseClient.createApi(supabaseUrl)
-            val record = LiveSessionRecord(pin = pin, status = "waiting")
+            val record = LiveSessionRecord(
+                pin = pin,
+                allPlayers = allPlayers,
+                courtPlayers = courtPlayers,
+                score1 = 0,
+                score2 = 0,
+                status = "waiting",
+            )
 
             val response = api.createLiveSession(
                 apiKey = supabaseKey,
