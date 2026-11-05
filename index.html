@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SquashScore PRO - Placar ao Vivo</title>
+    <title>SquashScore_PRO - Placar ao Vivo</title>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -39,44 +39,48 @@
             padding: 20px;
             border-radius: 12px;
         }
+        .player-label {
+            font-size: 1.2rem;
+            color: #8ab4f8;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
         .status { font-style: italic; color: #4bb543; margin-top: 20px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>SquashScore PRO</h1>
-        <div id="room-info" class="pin-box">Carregando sala...</div>
+        <h1>SquashScore_PRO</h1>
+        <div id="room-info" class="pin-box">A carregar sala...</div>
 
         <div class="score-board">
             <div>
-                <div style="font-size: 1rem; color: #888;">J1</div>
+                <div id="player1-name" class="player-label">J1</div>
                 <span id="score1">0</span>
             </div>
-            <div style="color: #555;">-</div>
+            <div style="color: #555; align-self: center;">-</div>
             <div>
-                <div style="font-size: 1rem; color: #888;">J2</div>
+                <div id="player2-name" class="player-label">J2</div>
                 <span id="score2">0</span>
             </div>
         </div>
 
-        <div id="status" class="status">Aguardando início da partida...</div>
+        <div id="status" class="status">A aguardar início da partida...</div>
     </div>
 
     <script>
-        // Substitua pelas suas credenciais reais do Supabase
         const SUPABASE_URL = 'https://tosgwsmypmxkzhhaofqi.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvc2d3c215cG14a3poaGFvZnFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MjIyODcsImV4cCI6MjEwOTM5ODI4N30.WTRuZyHAZpWo_XZjntO746EyIrcBvlMYPf3re81rFbs';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvc2d3c215cG14a3poaGFvZnFpIiwicm9sZSI6InFub24iLCJpYXQiOjE3OTM4MjIyODcsImV4cCI6MjEwOTM5ODI4N30.WTRuZyHAZpWo_XZjntO746EyIrcBvlMYPf3re81rFbs';
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Pega o número da sala da URL (ex: ?sala=7944)
         const urlParams = new URLSearchParams(window.location.search);
         const roomPin = urlParams.get('sala');
 
         if (!roomPin) {
             document.getElementById('room-info').innerText = "Erro: Nenhuma sala informada!";
-            document.getElementById('status').innerText = "Escaneie o QR Code correto no celular do Host.";
+            document.getElementById('status').innerText = "Escaneie o QR Code correto no telemóvel do Host.";
         } else {
             document.getElementById('room-info').innerText = `Sala Conectada: #${roomPin}`;
             loadRoomData(roomPin);
@@ -116,22 +120,23 @@
                 .subscribe();
         }
 
-       function updateUI(data) {
-    document.getElementById('score1').innerText = data.score1 || 0;
-    document.getElementById('score2').innerText = data.score2 || 0;
-    
-    // Pega os nomes do array gravado pelo app no Supabase
-    if (data.all_players && Array.isArray(data.all_players)) {
-        if (data.all_players.length > 0) {
-            document.getElementById('player1-name').innerText = data.all_players[0];
+        function updateUI(data) {
+            document.getElementById('score1').innerText = data.score1 || 0;
+            document.getElementById('score2').innerText = data.score2 || 0;
+            
+            // Atribui os nomes vindos do array court_players ou all_players do Supabase
+            const players = data.court_players || data.all_players;
+            if (players && Array.isArray(players)) {
+                if (players.length > 0 && players[0]) {
+                    document.getElementById('player1-name').innerText = players[0];
+                }
+                if (players.length > 1 && players[1]) {
+                    document.getElementById('player2-name').innerText = players[1];
+                }
+            }
+            
+            document.getElementById('status').innerText = `Status: ${data.status}`;
         }
-        if (data.all_players.length > 1) {
-            document.getElementById('player2-name').innerText = data.all_players[1];
-        }
-    }
-    
-    document.getElementById('status').innerText = `Status: ${data.status}`;
-}
     </script>
 </body>
 </html>
