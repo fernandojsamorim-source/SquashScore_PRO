@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -61,10 +62,11 @@ private const val BASE_URL = "https://fernandojsamorim-source.github.io/SquashSc
 @Composable
 fun HostLobbyScreen(
     modifier: Modifier = Modifier,
-    supabaseUrl: String = "",
-    supabaseKey: String = "",
+    supabaseUrl: String = "https://tosgwsmypmxkzhhaofqi.supabase.co",
+    supabaseKey: String = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvc2d3c215cG14a3poaGFvZnFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MjIyODcsImV4cCI6MjEwOTM5ODI4N30.WTRuZyHAZpWo_XZjntO746EyIrcBvlMYPf3re81rFbs",
     onRoomCreated: (pin: String, url: String) -> Unit = { _, _ -> },
 ) {
+    val coroutineScope = rememberCoroutineScope()
     var pin by rememberSaveable { mutableStateOf<String?>(null) }
 
     val fullUrl = remember(pin) {
@@ -75,6 +77,23 @@ fun HostLobbyScreen(
         if (fullUrl.isNotEmpty()) {
             generateQrCodeBitmap(fullUrl, size = 512)
         } else null
+    }
+
+    val createRoom: () -> Unit = {
+        val newPin = String.format(Locale.US, "%04d", Random.nextInt(10000))
+        pin = newPin
+        onRoomCreated(newPin, "$BASE_URL$newPin")
+
+        if (supabaseUrl.isNotEmpty() && supabaseKey.isNotEmpty()) {
+            createLiveSessionInSupabase(
+                supabaseUrl = supabaseUrl,
+                supabaseKey = supabaseKey,
+                pin = newPin,
+                coroutineScope = coroutineScope,
+            )
+        } else {
+            Log.d("HostLobbyScreen", "Supabase URL or Key is empty. Skipping network call.")
+        }
     }
 
     Surface(
@@ -127,22 +146,7 @@ fun HostLobbyScreen(
                         Spacer(modifier = Modifier.height(20.dp))
 
                         Button(
-                            onClick = {
-                                val newPin = String.format(Locale.US, "%04d", Random.nextInt(10000))
-                                pin = newPin
-                                onRoomCreated(newPin, "$BASE_URL$newPin")
-
-                                // Trigger POST request to Supabase in Dispatchers.IO
-                                if (supabaseUrl.isNotEmpty() && supabaseKey.isNotEmpty()) {
-                                    createLiveSessionInSupabase(
-                                        supabaseUrl = supabaseUrl,
-                                        supabaseKey = supabaseKey,
-                                        pin = newPin,
-                                    )
-                                } else {
-                                    Log.d("HostLobbyScreen", "Supabase URL or Key is empty. Skipping network call.")
-                                }
-                            },
+                            onClick = createRoom,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text(
@@ -239,22 +243,7 @@ fun HostLobbyScreen(
                         Spacer(modifier = Modifier.height(20.dp))
 
                         OutlinedButton(
-                            onClick = {
-                                val newPin = String.format(Locale.US, "%04d", Random.nextInt(10000))
-                                pin = newPin
-                                onRoomCreated(newPin, "$BASE_URL$newPin")
-
-                                // Trigger POST request to Supabase in Dispatchers.IO
-                                if (supabaseUrl.isNotEmpty() && supabaseKey.isNotEmpty()) {
-                                    createLiveSessionInSupabase(
-                                        supabaseUrl = supabaseUrl,
-                                        supabaseKey = supabaseKey,
-                                        pin = newPin,
-                                    )
-                                } else {
-                                    Log.d("HostLobbyScreen", "Supabase URL or Key is empty. Skipping network call.")
-                                }
-                            },
+                            onClick = createRoom,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
                             Text("Gerar Nova Sala")
@@ -272,15 +261,17 @@ fun HostLobbyScreen(
  * @param supabaseUrl Base URL of the Supabase project.
  * @param supabaseKey Anonymous/Public API key for Supabase.
  * @param pin Generated 4-digit room PIN.
+ * @param coroutineScope CoroutineScope tied to the caller lifecycle.
  * @param onResult Callback executed with success status and optional message.
  */
 fun createLiveSessionInSupabase(
     supabaseUrl: String,
     supabaseKey: String,
     pin: String,
+    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     onResult: (success: Boolean, message: String) -> Unit = { _, _ -> },
 ) {
-    CoroutineScope(Dispatchers.IO).launch {
+    coroutineScope.launch(Dispatchers.IO) {
         try {
             Log.d("HostLobbyScreen", "Attempting to create live session in Supabase for PIN: $pin")
             val api = SupabaseClient.createApi(supabaseUrl)
@@ -319,13 +310,14 @@ fun generateQrCodeBitmap(content: String, size: Int = 512): ImageBitmap? {
             EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.H,
         )
         val bitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-
-        for (x in 0 until size) {
-            for (y in 0 until size) {
-                bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+        val pixels = IntArray(size * size)
+        for (y in 0 until size) {
+            val offset = y * size
+            for (x in 0 until size) {
+                pixels[offset + x] = if (bitMatrix[x, y]) Color.BLACK else Color.WHITE
             }
         }
+        val bitmap = Bitmap.createBitmap(pixels, size, size, Bitmap.Config.ARGB_8888)
         bitmap.asImageBitmap()
     } catch (e: Exception) {
         e.printStackTrace()
