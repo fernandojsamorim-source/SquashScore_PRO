@@ -116,11 +116,22 @@
                 .subscribe();
         }
 
-        function updateUI(data) {
-            document.getElementById('score1').innerText = data.score1 || 0;
-            document.getElementById('score2').innerText = data.score2 || 0;
-            document.getElementById('status').innerText = `Status: ${data.status}`;
+       function updateUI(data) {
+    document.getElementById('score1').innerText = data.score1 || 0;
+    document.getElementById('score2').innerText = data.score2 || 0;
+    
+    // Pega os nomes do array gravado pelo app no Supabase
+    if (data.all_players && Array.isArray(data.all_players)) {
+        if (data.all_players.length > 0) {
+            document.getElementById('player1-name').innerText = data.all_players[0];
         }
+        if (data.all_players.length > 1) {
+            document.getElementById('player2-name').innerText = data.all_players[1];
+        }
+    }
+    
+    document.getElementById('status').innerText = `Status: ${data.status}`;
+}
     </script>
 </body>
 </html>
