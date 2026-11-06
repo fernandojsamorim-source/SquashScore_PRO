@@ -4,10 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SquashScore_PRO - Placar ao Vivo</title>
-    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Fonte digital para os números do placar -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -19,6 +16,7 @@
             --color-text-main: #ffffff;
             --color-text-dim: #888888;
             --color-accent: #00aaff;
+            --color-gold: #ffaa00;
         }
 
         body {
@@ -29,31 +27,33 @@
             flex-direction: column;
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* Evita barras de scroll num tablet horizontal */
+            overflow: hidden;
         }
 
         /* HEADER PANORÂMICO */
         header {
             background-color: var(--color-panel);
-            text-align: center;
-            padding: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
             border-bottom: 2px solid #222;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
         header h1 {
             margin: 0;
-            font-size: 2.5rem;
+            font-size: 2rem;
             color: var(--color-accent);
             text-transform: uppercase;
             letter-spacing: 4px;
         }
 
-        header .room-info {
-            font-size: 1rem;
-            color: var(--color-text-dim);
-            margin-top: 5px;
-            letter-spacing: 1px;
+        .room-info {
+            font-size: 1.2rem;
+            color: var(--color-gold);
+            font-weight: bold;
+            letter-spacing: 2px;
         }
 
         /* ÁREA PRINCIPAL DO PLACAR */
@@ -61,12 +61,11 @@
             flex: 1;
             display: flex;
             justify-content: space-between;
-            align-items: stretch;
-            padding: 40px;
-            gap: 40px;
+            align-items: center;
+            padding: 20px 40px;
+            gap: 20px;
         }
 
-        /* COLUNAS DOS JOGADORES */
         .player-column {
             flex: 1;
             background: var(--color-panel);
@@ -75,17 +74,18 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 30px;
+            padding: 20px;
             border: 1px solid #333;
             box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
+            height: 80%;
         }
 
         .player-name {
-            font-size: 3.5rem;
+            font-size: 3rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -93,65 +93,95 @@
             text-align: center;
         }
 
-        /* NÚMEROS DO PLACAR (ESTILO LED) */
         .score-display {
             font-family: 'Orbitron', sans-serif;
-            font-size: 15rem; /* Números gigantes */
+            font-size: 14rem;
             line-height: 1;
-            text-shadow: 0 0 20px currentColor; /* Efeito de brilho do LED */
+            text-shadow: 0 0 20px currentColor;
         }
 
-        #player1-column .player-name { color: var(--color-text-main); }
         #player1-column .score-display { color: var(--color-score-red); }
-        
-        #player2-column .player-name { color: var(--color-text-main); }
         #player2-column .score-display { color: var(--color-score-green); }
 
-        /* ZONA CENTRAL (Vítórias/Sets) */
+        /* ZONA CENTRAL */
         .center-info {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-width: 250px;
+            min-width: 200px;
         }
 
-        .sets-box {
-            background: #1a1a1a;
-            border-radius: 15px;
-            padding: 20px 40px;
-            text-align: center;
-            border: 1px solid #444;
-        }
-
-        .sets-label {
-            font-size: 1.5rem;
-            color: var(--color-text-dim);
+        .game-badge {
+            background: var(--color-gold);
+            color: #000;
+            font-weight: 900;
+            font-size: 2rem;
+            padding: 10px 30px;
+            border-radius: 10px;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-bottom: 10px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.4);
         }
 
         .sets-score {
             font-family: 'Orbitron', sans-serif;
-            font-size: 5rem;
-            color: #ffaa00; /* Cor amarela estilo LED central */
-            text-shadow: 0 0 15px #ffaa00;
+            font-size: 4rem;
+            color: var(--color-text-main);
         }
 
-        /* RODAPÉ DE STATUS */
-        footer {
-            text-align: center;
-            padding: 15px;
+        /* RANKING / LEADERBOARD (RODAPÉ) */
+        .leaderboard-container {
+            background-color: var(--color-panel);
+            border-top: 2px solid #222;
+            padding: 15px 40px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .leaderboard-title {
             font-size: 1.2rem;
             color: var(--color-text-dim);
-            font-style: italic;
-            background-color: var(--color-panel);
-            border-top: 1px solid #222;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-right: 10px;
         }
 
-        #status {
-            color: #ffaa00;
+        .leaderboard-players {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+            overflow-x: auto; /* Permite scroll horizontal se houver 6+ jogadores */
+        }
+
+        .player-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+        }
+
+        .card-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--color-accent);
+            margin-bottom: 5px;
+        }
+
+        .card-stats {
+            font-size: 1rem;
+            color: var(--color-text-main);
+        }
+
+        .card-stats span {
+            color: var(--color-text-dim);
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -159,106 +189,100 @@
 
     <header>
         <h1>SquashScore PRO</h1>
-        <div id="room-info" class="room-info">A carregar sala...</div>
+        <div id="room-info" class="room-info">SALA: ---</div>
     </header>
 
     <div class="scoreboard-container">
-        <!-- Jogador 1 (Esquerda) -->
+        <!-- Jogador 1 -->
         <div id="player1-column" class="player-column">
             <div id="player1-name" class="player-name">JOGADOR 1</div>
             <div id="score1" class="score-display">0</div>
         </div>
 
-        <!-- Zona Central (Vitórias nos Games) -->
+        <!-- Central -->
         <div class="center-info">
-            <div class="sets-box">
-                <div class="sets-label">GAMES</div>
-                <!-- Exemplo visual estático: 0 - 0. Isto requer adicionar lógica no Android e Supabase para enviar as vitórias -->
-                <div class="sets-score"><span id="wins1">0</span> : <span id="wins2">0</span></div>
-            </div>
+            <div class="game-badge">Game <span id="current-game">1</span></div>
+            <div class="sets-score"><span id="wins1">0</span> - <span id="wins2">0</span></div>
         </div>
 
-        <!-- Jogador 2 (Direita) -->
+        <!-- Jogador 2 -->
         <div id="player2-column" class="player-column">
             <div id="player2-name" class="player-name">JOGADOR 2</div>
             <div id="score2" class="score-display">0</div>
         </div>
     </div>
 
-    <footer>
-        <span id="status">A aguardar início da partida...</span>
-    </footer>
+    <!-- Rodapé com todos os jogadores -->
+    <div class="leaderboard-container">
+        <div class="leaderboard-title">CLASSIFICAÇÃO GERAL:</div>
+        <div id="leaderboard-players" class="leaderboard-players">
+            <!-- Os cards dos jogadores serão gerados dinamicamente aqui -->
+            <div class="player-card" style="opacity: 0.5;">A aguardar dados...</div>
+        </div>
+    </div>
 
     <script>
         const SUPABASE_URL = 'https://tosgwsmypmxkzhhaofqi.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_d6LnSuBPvS0Yl1mPCdDOlQ_kGd4xF-M';
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         const urlParams = new URLSearchParams(window.location.search);
         const roomPin = urlParams.get('sala');
 
         if (!roomPin) {
-            document.getElementById('room-info').innerText = "Erro: Nenhuma sala informada!";
-            document.getElementById('status').innerText = "Escaneie o QR Code correto no telemóvel do Host.";
+            document.getElementById('room-info').innerText = "ERRO: SEM SALA";
         } else {
-            document.getElementById('room-info').innerText = `SALA CONECTADA: #${roomPin}`;
+            document.getElementById('room-info').innerText = `SALA: #${roomPin}`;
             loadRoomData(roomPin);
             subscribeRealtime(roomPin);
         }
 
         async function loadRoomData(pin) {
-            const { data, error } = await supabaseClient
-                .from('live_sessions')
-                .select('*')
-                .eq('pin', pin)
-                .single();
-
-            if (error) {
-                console.error("Erro ao buscar sala:", error);
-                document.getElementById('status').innerText = "Sala não encontrada no banco.";
-                return;
-            }
-
-            if (data) {
-                updateUI(data);
-            }
+            const { data, error } = await supabaseClient.from('live_sessions').select('*').eq('pin', pin).single();
+            if (data) updateUI(data);
         }
 
         function subscribeRealtime(pin) {
             supabaseClient
                 .channel('public:live_sessions')
-                .on('postgres_changes', { 
-                    event: 'UPDATE', 
-                    schema: 'public', 
-                    table: 'live_sessions',
-                    filter: `pin=eq.${pin}`
-                }, (payload) => {
-                    console.log('Mudança em tempo real recebida:', payload);
-                    updateUI(payload.new);
-                })
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'live_sessions', filter: `pin=eq.${pin}` }, 
+                (payload) => updateUI(payload.new))
                 .subscribe();
         }
 
         function updateUI(data) {
+            // Placar da quadra
             document.getElementById('score1').innerText = data.score1 || 0;
             document.getElementById('score2').innerText = data.score2 || 0;
+            document.getElementById('wins1').innerText = data.wins1 || 0;
+            document.getElementById('wins2').innerText = data.wins2 || 0;
+            document.getElementById('current-game').innerText = data.current_game || 1;
             
-            // As vitórias nos games precisarão ser adicionadas como colunas na tabela live_sessions
-            // document.getElementById('wins1').innerText = data.wins1 || 0;
-            // document.getElementById('wins2').innerText = data.wins2 || 0;
+            const courtPlayers = data.court_players || [];
+            if (courtPlayers.length > 0) document.getElementById('player1-name').innerText = courtPlayers[0];
+            if (courtPlayers.length > 1) document.getElementById('player2-name').innerText = courtPlayers[1];
+
+            // Renderiza o Leaderboard de todos os jogadores
+            // Espera-se que data.player_stats seja um array de objetos, ex: [{"name": "Fernando", "points": 45, "wins": 3}, ...]
+            const stats = data.player_stats || [];
+            const leaderboardContainer = document.getElementById('leaderboard-players');
             
-            const players = data.court_players || data.all_players;
-            if (players && Array.isArray(players)) {
-                if (players.length > 0 && players[0]) {
-                    document.getElementById('player1-name').innerText = players[0];
-                }
-                if (players.length > 1 && players[1]) {
-                    document.getElementById('player2-name').innerText = players[1];
-                }
+            if (stats.length > 0) {
+                leaderboardContainer.innerHTML = ''; // Limpa os dados antigos
+                
+                // Ordena por vitórias (decrescente) e depois por pontos
+                stats.sort((a, b) => b.wins - a.wins || b.points - a.points);
+
+                stats.forEach(player => {
+                    const card = document.createElement('div');
+                    card.className = 'player-card';
+                    card.innerHTML = `
+                        <div class="card-name">${player.name}</div>
+                        <div class="card-stats">${player.wins} <span>Vitórias</span> | ${player.points} <span>Pts</span></div>
+                    `;
+                    leaderboardContainer.appendChild(card);
+                });
             }
-            
-            document.getElementById('status').innerText = `STATUS: ${data.status}`;
         }
     </script>
 </body>
