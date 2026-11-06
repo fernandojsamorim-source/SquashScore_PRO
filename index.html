@@ -6,68 +6,188 @@
     <title>SquashScore_PRO - Placar ao Vivo</title>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Fonte digital para os números do placar -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    
     <style>
+        :root {
+            --color-bg: #050505;
+            --color-panel: #111111;
+            --color-score-red: #ff3333;
+            --color-score-green: #33ff33;
+            --color-text-main: #ffffff;
+            --color-text-dim: #888888;
+            --color-accent: #00aaff;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
+            background-color: var(--color-bg);
+            color: var(--color-text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Evita barras de scroll num tablet horizontal */
+        }
+
+        /* HEADER PANORÂMICO */
+        header {
+            background-color: var(--color-panel);
+            text-align: center;
+            padding: 15px 0;
+            border-bottom: 2px solid #222;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            color: var(--color-accent);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        header .room-info {
+            font-size: 1rem;
+            color: var(--color-text-dim);
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+
+        /* ÁREA PRINCIPAL DO PLACAR */
+        .scoreboard-container {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            padding: 40px;
+            gap: 40px;
+        }
+
+        /* COLUNAS DOS JOGADORES */
+        .player-column {
+            flex: 1;
+            background: var(--color-panel);
+            border-radius: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
+            padding: 30px;
+            border: 1px solid #333;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.8);
         }
-        .container {
+
+        .player-name {
+            font-size: 3.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
             text-align: center;
-            background: #1e1e1e;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            max-width: 500px;
-            width: 90%;
         }
-        h1 { color: #8ab4f8; margin-bottom: 10px; }
-        .pin-box { font-size: 1.5rem; margin-bottom: 30px; color: #aaa; }
-        .score-board {
+
+        /* NÚMEROS DO PLACAR (ESTILO LED) */
+        .score-display {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 15rem; /* Números gigantes */
+            line-height: 1;
+            text-shadow: 0 0 20px currentColor; /* Efeito de brilho do LED */
+        }
+
+        #player1-column .player-name { color: var(--color-text-main); }
+        #player1-column .score-display { color: var(--color-score-red); }
+        
+        #player2-column .player-name { color: var(--color-text-main); }
+        #player2-column .score-display { color: var(--color-score-green); }
+
+        /* ZONA CENTRAL (Vítórias/Sets) */
+        .center-info {
             display: flex;
-            justify-content: space-around;
-            font-size: 4rem;
-            font-weight: bold;
-            margin: 20px 0;
-            background: #2b2b2b;
-            padding: 20px;
-            border-radius: 12px;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-width: 250px;
         }
-        .player-label {
+
+        .sets-box {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 20px 40px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+
+        .sets-label {
+            font-size: 1.5rem;
+            color: var(--color-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .sets-score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem;
+            color: #ffaa00; /* Cor amarela estilo LED central */
+            text-shadow: 0 0 15px #ffaa00;
+        }
+
+        /* RODAPÉ DE STATUS */
+        footer {
+            text-align: center;
+            padding: 15px;
             font-size: 1.2rem;
-            color: #8ab4f8;
-            margin-bottom: 5px;
-            font-weight: 600;
+            color: var(--color-text-dim);
+            font-style: italic;
+            background-color: var(--color-panel);
+            border-top: 1px solid #222;
         }
-        .status { font-style: italic; color: #4bb543; margin-top: 20px; }
+
+        #status {
+            color: #ffaa00;
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>SquashScore_PRO</h1>
-        <div id="room-info" class="pin-box">A carregar sala...</div>
+    <header>
+        <h1>SquashScore PRO</h1>
+        <div id="room-info" class="room-info">A carregar sala...</div>
+    </header>
 
-        <div class="score-board">
-            <div>
-                <div id="player1-name" class="player-label">J1</div>
-                <span id="score1">0</span>
-            </div>
-            <div style="color: #555; align-self: center;">-</div>
-            <div>
-                <div id="player2-name" class="player-label">J2</div>
-                <span id="score2">0</span>
+    <div class="scoreboard-container">
+        <!-- Jogador 1 (Esquerda) -->
+        <div id="player1-column" class="player-column">
+            <div id="player1-name" class="player-name">JOGADOR 1</div>
+            <div id="score1" class="score-display">0</div>
+        </div>
+
+        <!-- Zona Central (Vitórias nos Games) -->
+        <div class="center-info">
+            <div class="sets-box">
+                <div class="sets-label">GAMES</div>
+                <!-- Exemplo visual estático: 0 - 0. Isto requer adicionar lógica no Android e Supabase para enviar as vitórias -->
+                <div class="sets-score"><span id="wins1">0</span> : <span id="wins2">0</span></div>
             </div>
         </div>
 
-        <div id="status" class="status">A aguardar início da partida...</div>
+        <!-- Jogador 2 (Direita) -->
+        <div id="player2-column" class="player-column">
+            <div id="player2-name" class="player-name">JOGADOR 2</div>
+            <div id="score2" class="score-display">0</div>
+        </div>
     </div>
+
+    <footer>
+        <span id="status">A aguardar início da partida...</span>
+    </footer>
 
     <script>
         const SUPABASE_URL = 'https://tosgwsmypmxkzhhaofqi.supabase.co';
@@ -82,7 +202,7 @@
             document.getElementById('room-info').innerText = "Erro: Nenhuma sala informada!";
             document.getElementById('status').innerText = "Escaneie o QR Code correto no telemóvel do Host.";
         } else {
-            document.getElementById('room-info').innerText = `Sala Conectada: #${roomPin}`;
+            document.getElementById('room-info').innerText = `SALA CONECTADA: #${roomPin}`;
             loadRoomData(roomPin);
             subscribeRealtime(roomPin);
         }
@@ -124,7 +244,10 @@
             document.getElementById('score1').innerText = data.score1 || 0;
             document.getElementById('score2').innerText = data.score2 || 0;
             
-            // Atribui os nomes vindos do array court_players ou all_players do Supabase
+            // As vitórias nos games precisarão ser adicionadas como colunas na tabela live_sessions
+            // document.getElementById('wins1').innerText = data.wins1 || 0;
+            // document.getElementById('wins2').innerText = data.wins2 || 0;
+            
             const players = data.court_players || data.all_players;
             if (players && Array.isArray(players)) {
                 if (players.length > 0 && players[0]) {
@@ -135,7 +258,7 @@
                 }
             }
             
-            document.getElementById('status').innerText = `Status: ${data.status}`;
+            document.getElementById('status').innerText = `STATUS: ${data.status}`;
         }
     </script>
 </body>
