@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SquashScore_PRO - Placar ao Vivo</title>
+    <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Digital Font for Scoreboard Numbers -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     
     <style>
@@ -30,7 +33,7 @@
             overflow: hidden;
         }
 
-        /* HEADER PANORÂMICO */
+        /* PANORAMIC HEADER */
         header {
             background-color: var(--color-panel);
             display: flex;
@@ -56,7 +59,7 @@
             letter-spacing: 2px;
         }
 
-        /* ÁREA PRINCIPAL DO PLACAR */
+        /* MAIN SCOREBOARD AREA */
         .scoreboard-container {
             flex: 1;
             display: flex;
@@ -103,7 +106,7 @@
         #player1-column .score-display { color: var(--color-score-red); }
         #player2-column .score-display { color: var(--color-score-green); }
 
-        /* ZONA CENTRAL */
+        /* CENTER AREA */
         .center-info {
             display: flex;
             flex-direction: column;
@@ -131,7 +134,7 @@
             color: var(--color-text-main);
         }
 
-        /* RANKING / LEADERBOARD (RODAPÉ) */
+        /* LEADERBOARD FOOTER */
         .leaderboard-container {
             background-color: var(--color-panel);
             border-top: 2px solid #222;
@@ -153,7 +156,7 @@
             display: flex;
             flex: 1;
             gap: 15px;
-            overflow-x: auto; /* Permite scroll horizontal se houver 6+ jogadores */
+            overflow-x: auto;
         }
 
         .player-card {
@@ -193,30 +196,29 @@
     </header>
 
     <div class="scoreboard-container">
-        <!-- Jogador 1 -->
+        <!-- Player 1 -->
         <div id="player1-column" class="player-column">
             <div id="player1-name" class="player-name">JOGADOR 1</div>
             <div id="score1" class="score-display">0</div>
         </div>
 
-        <!-- Central -->
+        <!-- Center (Games / Sets) -->
         <div class="center-info">
             <div class="game-badge">Game <span id="current-game">1</span></div>
             <div class="sets-score"><span id="wins1">0</span> - <span id="wins2">0</span></div>
         </div>
 
-        <!-- Jogador 2 -->
+        <!-- Player 2 -->
         <div id="player2-column" class="player-column">
             <div id="player2-name" class="player-name">JOGADOR 2</div>
             <div id="score2" class="score-display">0</div>
         </div>
     </div>
 
-    <!-- Rodapé com todos os jogadores -->
+    <!-- Leaderboard Footer -->
     <div class="leaderboard-container">
-        <div class="leaderboard-title">CLASSIFICAÇÃO GERAL:</div>
+        <div class="leaderboard-title">CLASSIFICAÇÃO:</div>
         <div id="leaderboard-players" class="leaderboard-players">
-            <!-- Os cards dos jogadores serão gerados dinamicamente aqui -->
             <div class="player-card" style="opacity: 0.5;">A aguardar dados...</div>
         </div>
     </div>
@@ -251,7 +253,6 @@
         }
 
         function updateUI(data) {
-            // Placar da quadra
             document.getElementById('score1').innerText = data.score1 || 0;
             document.getElementById('score2').innerText = data.score2 || 0;
             document.getElementById('wins1').innerText = data.wins1 || 0;
@@ -259,18 +260,14 @@
             document.getElementById('current-game').innerText = data.current_game || 1;
             
             const courtPlayers = data.court_players || [];
-            if (courtPlayers.length > 0) document.getElementById('player1-name').innerText = courtPlayers[0];
-            if (courtPlayers.length > 1) document.getElementById('player2-name').innerText = courtPlayers[1];
+            if (courtPlayers.length > 0 && courtPlayers[0]) document.getElementById('player1-name').innerText = courtPlayers[0];
+            if (courtPlayers.length > 1 && courtPlayers[1]) document.getElementById('player2-name').innerText = courtPlayers[1];
 
-            // Renderiza o Leaderboard de todos os jogadores
-            // Espera-se que data.player_stats seja um array de objetos, ex: [{"name": "Fernando", "points": 45, "wins": 3}, ...]
             const stats = data.player_stats || [];
             const leaderboardContainer = document.getElementById('leaderboard-players');
             
             if (stats.length > 0) {
-                leaderboardContainer.innerHTML = ''; // Limpa os dados antigos
-                
-                // Ordena por vitórias (decrescente) e depois por pontos
+                leaderboardContainer.innerHTML = '';
                 stats.sort((a, b) => b.wins - a.wins || b.points - a.points);
 
                 stats.forEach(player => {
